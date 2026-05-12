@@ -68,10 +68,6 @@
     <div class="question-hint" id="question-hint" style="display:none"></div>
     <div class="question-text" id="question-text" style="display:none"></div>
     <div class="color-scheme-display" id="color-scheme-display" style="display:none"></div>
-    <div class="sound-row">
-      <button class="sound-btn" id="sound-btn">🔊 Послушать</button>
-      <select class="voice-select" id="voice-select" title="Выбрать голос"></select>
-    </div>
     <div class="answers-grid" id="answers-grid"></div>
   </div>
 </div>
@@ -139,72 +135,11 @@ const questionEl    = document.getElementById('question-display');
 const hintEl        = document.getElementById('question-hint');
 const questionText  = document.getElementById('question-text');
 const colorSchemeEl = document.getElementById('color-scheme-display');
-const soundBtn      = document.getElementById('sound-btn');
 const answersGrid   = document.getElementById('answers-grid');
 const resultScore   = document.getElementById('result-score');
 const resultSub     = document.getElementById('result-sub');
 const levelError    = document.getElementById('level-error');
 
-// ── Speech ───────────────────────────────────────────────────────────
-const voiceSelect = document.getElementById('voice-select');
-
-if (!window.speechSynthesis) {
-  soundBtn.style.display = 'none';
-  voiceSelect.style.display = 'none';
-}
-
-function populateVoices() {
-  const voices = speechSynthesis.getVoices();
-  if (!voices.length) return;
-  const saved = localStorage.getItem('selectedVoice');
-  voiceSelect.innerHTML = '';
-  voices.forEach((v, i) => {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = v.name + (v.lang ? ' (' + v.lang + ')' : '');
-    if (saved === v.name) opt.selected = true;
-    voiceSelect.appendChild(opt);
-  });
-  // Default to first Russian voice if nothing saved
-  if (!saved) {
-    const ruIdx = voices.findIndex(v => v.lang.startsWith('ru'));
-    if (ruIdx >= 0) voiceSelect.value = ruIdx;
-  }
-}
-
-function getVoice() {
-  const voices = speechSynthesis.getVoices();
-  const idx = parseInt(voiceSelect.value);
-  return (!isNaN(idx) && voices[idx]) ? voices[idx] : null;
-}
-
-function makeUtt(text, rate) {
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.lang = 'ru-RU';
-  utt.rate = rate;
-  const v = getVoice();
-  if (v) utt.voice = v;
-  return utt;
-}
-
-function speak(text) {
-  speechSynthesis.cancel();
-  speechSynthesis.speak(makeUtt(text, 0.72));
-}
-
-function speakLetter(letter, hintWord) {
-  speechSynthesis.cancel();
-  speechSynthesis.speak(makeUtt(letter + ' как ' + hintWord, 1.0));
-}
-
-voiceSelect.addEventListener('change', () => {
-  const voices = speechSynthesis.getVoices();
-  const idx = parseInt(voiceSelect.value);
-  if (voices[idx]) localStorage.setItem('selectedVoice', voices[idx].name);
-});
-
-speechSynthesis.onvoiceschanged = populateVoices;
-populateVoices();
 
 // ── Confetti ─────────────────────────────────────────────────────────
 function triggerConfetti(count = 10) {
@@ -319,22 +254,6 @@ function renderExercise(index) {
     questionText.textContent = qd.question;
     questionText.style.display = 'block';
   }
-
-  // Sound button
-  soundBtn.onclick = () => {
-    if (state.level === 0) {
-      const hintWord = (qd.hint || qd.display).split(' ').pop().toLowerCase();
-      const letter = qd.display.toLowerCase();
-      speakLetter(letter, hintWord);
-    } else if (state.level === 1) {
-      const s = qd.syllable.toLowerCase();
-      speak(s + ', ' + s);
-    } else if (state.level === 2) {
-      speak(qd.display.toLowerCase());
-    } else {
-      speak(qd.sentence);
-    }
-  };
 
   // Answer buttons
   answersGrid.innerHTML = '';
