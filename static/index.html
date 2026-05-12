@@ -194,7 +194,7 @@ function speak(text) {
 
 function speakLetter(letter, hintWord) {
   speechSynthesis.cancel();
-  speechSynthesis.speak(makeUtt(letter + ', как ' + hintWord, 0.72));
+  speechSynthesis.speak(makeUtt(letter + ' как ' + hintWord, 1.0));
 }
 
 voiceSelect.addEventListener('change', () => {
