@@ -150,15 +150,14 @@ async def main():
         count = (await session.execute(select(func.count()).select_from(Exercise))).scalar()
         if count and count >= len(EXERCISES):
             print(f"Already have {count} exercises, skipping seed")
-            await engine.dispose()
-            return
-        await session.execute(delete(Attempt))
-        await session.execute(delete(Session))
-        await session.execute(delete(Exercise))
-        session.add_all([Exercise(**e) for e in EXERCISES])
-        await session.commit()
+        else:
+            await session.execute(delete(Attempt))
+            await session.execute(delete(Session))
+            await session.execute(delete(Exercise))
+            session.add_all([Exercise(**e) for e in EXERCISES])
+            await session.commit()
+            print(f"Seeded {len(EXERCISES)} exercises")
     await engine.dispose()
-    print(f"Seeded {len(EXERCISES)} exercises")
 
 
 if __name__ == "__main__":
