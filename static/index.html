@@ -192,21 +192,9 @@ function speak(text) {
   speechSynthesis.speak(makeUtt(text, 0.72));
 }
 
-const VOWELS = new Set(['а','е','и','о','у','ы','э','ю','я','ё']);
-
-// Vowels: say the letter directly ("а, как арбуз")
-// Consonants: speak first syllable of hint word at 2.5x speed — vowel is nearly
-// inaudible at that rate, so only the consonant onset comes through ("р" not "эр").
-// Then say "как рыба" at normal speed.
 function speakLetter(letter, hintWord) {
   speechSynthesis.cancel();
-  if (VOWELS.has(letter)) {
-    speechSynthesis.speak(makeUtt(letter + ', как ' + hintWord, 0.72));
-  } else {
-    const firstSyllable = hintWord.slice(0, 2);
-    speechSynthesis.speak(makeUtt(firstSyllable, 2.5));
-    speechSynthesis.speak(makeUtt('как ' + hintWord, 0.72));
-  }
+  speechSynthesis.speak(makeUtt(letter + ', как ' + hintWord, 0.72));
 }
 
 voiceSelect.addEventListener('change', () => {
