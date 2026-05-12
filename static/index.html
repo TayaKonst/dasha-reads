@@ -68,7 +68,10 @@
     <div class="question-hint" id="question-hint" style="display:none"></div>
     <div class="question-text" id="question-text" style="display:none"></div>
     <div class="color-scheme-display" id="color-scheme-display" style="display:none"></div>
-    <button class="sound-btn" id="sound-btn">🔊 Послушать</button>
+    <div class="sound-row">
+      <button class="sound-btn" id="sound-btn">🔊 Послушать</button>
+      <select class="voice-select" id="voice-select" title="Выбрать голос"></select>
+    </div>
     <div class="answers-grid" id="answers-grid"></div>
   </div>
 </div>
@@ -143,8 +146,30 @@ const resultSub     = document.getElementById('result-sub');
 const levelError    = document.getElementById('level-error');
 
 // ── Speech ───────────────────────────────────────────────────────────
+const voiceSelect = document.getElementById('voice-select');
+
 if (!window.speechSynthesis) {
   soundBtn.style.display = 'none';
+  voiceSelect.style.display = 'none';
+}
+
+function populateVoices() {
+  const voices = speechSynthesis.getVoices();
+  if (!voices.length) return;
+  const saved = localStorage.getItem('selectedVoice');
+  voiceSelect.innerHTML = '';
+  voices.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = v.name + (v.lang ? ' (' + v.lang + ')' : '');
+    if (saved === v.name) opt.selected = true;
+    voiceSelect.appendChild(opt);
+  });
+  // Default to first Russian voice if nothing saved
+  if (!saved) {
+    const ruIdx = voices.findIndex(v => v.lang.startsWith('ru'));
+    if (ruIdx >= 0) voiceSelect.value = ruIdx;
+  }
 }
 
 function speak(text) {
@@ -153,10 +178,19 @@ function speak(text) {
   utt.lang = 'ru-RU';
   utt.rate = 0.72;
   const voices = speechSynthesis.getVoices();
-  const ruVoice = voices.find(v => v.lang.startsWith('ru'));
-  if (ruVoice) utt.voice = ruVoice;
+  const idx = parseInt(voiceSelect.value);
+  if (!isNaN(idx) && voices[idx]) utt.voice = voices[idx];
   speechSynthesis.speak(utt);
 }
+
+voiceSelect.addEventListener('change', () => {
+  const voices = speechSynthesis.getVoices();
+  const idx = parseInt(voiceSelect.value);
+  if (voices[idx]) localStorage.setItem('selectedVoice', voices[idx].name);
+});
+
+speechSynthesis.onvoiceschanged = populateVoices;
+populateVoices();
 
 // ── Confetti ─────────────────────────────────────────────────────────
 function triggerConfetti(count = 10) {
@@ -274,8 +308,16 @@ function renderExercise(index) {
 
   // Sound button
   soundBtn.onclick = () => {
-    const texts = [qd.display, qd.syllable, qd.display, qd.sentence];
-    speak((texts[state.level] || '').toLowerCase());
+    let text = '';
+    if (state.level === 0) text = qd.display.toLowerCase();
+    else if (state.level === 1) {
+      // Repeat syllable twice so TTS reads it as sound, not letters
+      const s = qd.syllable.toLowerCase();
+      text = s + ', ' + s;
+    }
+    else if (state.level === 2) text = qd.display.toLowerCase();
+    else text = qd.sentence;
+    speak(text);
   };
 
   // Answer buttons
