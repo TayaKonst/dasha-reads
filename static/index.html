@@ -68,6 +68,7 @@
     <div class="question-hint" id="question-hint" style="display:none"></div>
     <div class="question-text" id="question-text" style="display:none"></div>
     <div class="color-scheme-display" id="color-scheme-display" style="display:none"></div>
+    <button class="sound-btn" id="sound-btn">🔊 Послушать</button>
     <div class="answers-grid" id="answers-grid"></div>
   </div>
 </div>
@@ -135,11 +136,36 @@ const questionEl    = document.getElementById('question-display');
 const hintEl        = document.getElementById('question-hint');
 const questionText  = document.getElementById('question-text');
 const colorSchemeEl = document.getElementById('color-scheme-display');
+const soundBtn      = document.getElementById('sound-btn');
 const answersGrid   = document.getElementById('answers-grid');
 const resultScore   = document.getElementById('result-score');
 const resultSub     = document.getElementById('result-sub');
 const levelError    = document.getElementById('level-error');
 
+// ── Speech ───────────────────────────────────────────────────────────
+const LETTER_NAMES = {
+  'а':'а','б':'бэ','в':'вэ','г':'гэ','д':'дэ','е':'е','ё':'ё',
+  'ж':'жэ','з':'зэ','и':'и','й':'й','к':'ка','л':'эль','м':'эм',
+  'н':'эн','о':'о','п':'пэ','р':'эр','с':'эс','т':'тэ','у':'у',
+  'ф':'эф','х':'ха','ц':'цэ','ч':'чэ','ш':'ша','щ':'ща',
+  'ъ':'твёрдый знак','ы':'ы','ь':'мягкий знак','э':'э','ю':'ю','я':'я',
+};
+
+if (!window.speechSynthesis) soundBtn.style.display = 'none';
+
+function speak(text) {
+  speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'ru-RU';
+  utt.rate = 0.85;
+  const ruVoice = speechSynthesis.getVoices().find(v => v.lang.startsWith('ru'));
+  if (ruVoice) utt.voice = ruVoice;
+  speechSynthesis.speak(utt);
+}
+
+if (window.speechSynthesis) {
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+}
 
 // ── Confetti ─────────────────────────────────────────────────────────
 function triggerConfetti(count = 10) {
@@ -254,6 +280,22 @@ function renderExercise(index) {
     questionText.textContent = qd.question;
     questionText.style.display = 'block';
   }
+
+  // Sound button
+  soundBtn.onclick = () => {
+    if (state.level === 0) {
+      const letterName = LETTER_NAMES[qd.display.toLowerCase()] || qd.display.toLowerCase();
+      const hintWord = (qd.hint || '').split(' ').pop().toLowerCase();
+      speak(letterName + ', как ' + hintWord);
+    } else if (state.level === 1) {
+      const s = qd.syllable.toLowerCase();
+      speak(s + ', ' + s);
+    } else if (state.level === 2) {
+      speak(qd.display.toLowerCase());
+    } else {
+      speak(qd.sentence);
+    }
+  };
 
   // Answer buttons
   answersGrid.innerHTML = '';

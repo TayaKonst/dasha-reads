@@ -261,6 +261,25 @@ h2 {
 }
 
 
+.sound-btn {
+  display: block;
+  margin: 0 auto 14px;
+  background: none;
+  border: 2px solid var(--accent);
+  border-radius: 50px;
+  padding: 6px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.sound-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* ── Answer buttons ────────────────────────────────────────────────── */
 .answers-grid {
   display: grid;
