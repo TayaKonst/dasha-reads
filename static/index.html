@@ -192,13 +192,19 @@ function speak(text) {
   speechSynthesis.speak(makeUtt(text, 0.72));
 }
 
-// For letters: stretch the first syllable of the hint word so the
-// consonant onset is clearly audible, then say "как мама" normally.
-function speakLetter(hintWord) {
+const VOWELS = new Set(['а','е','и','о','у','ы','э','ю','я','ё']);
+
+// Vowels: say the letter directly ("а, как арбуз")
+// Consonants: stretch first syllable of hint word so onset is audible ("ма"→"ммм..."), then "как мама"
+function speakLetter(letter, hintWord) {
   speechSynthesis.cancel();
-  const firstSyllable = hintWord.slice(0, 2); // e.g. "ма" from "мама"
-  speechSynthesis.speak(makeUtt(firstSyllable, 0.15)); // very slow → "мммм..."
-  speechSynthesis.speak(makeUtt('как ' + hintWord, 0.72));
+  if (VOWELS.has(letter)) {
+    speechSynthesis.speak(makeUtt(letter + ', как ' + hintWord, 0.72));
+  } else {
+    const firstSyllable = hintWord.slice(0, 2);
+    speechSynthesis.speak(makeUtt(firstSyllable, 0.15));
+    speechSynthesis.speak(makeUtt('как ' + hintWord, 0.72));
+  }
 }
 
 voiceSelect.addEventListener('change', () => {
@@ -328,7 +334,8 @@ function renderExercise(index) {
   soundBtn.onclick = () => {
     if (state.level === 0) {
       const hintWord = (qd.hint || qd.display).split(' ').pop().toLowerCase();
-      speakLetter(hintWord); // slow first syllable + "как мама"
+      const letter = qd.display.toLowerCase();
+      speakLetter(letter, hintWord);
     } else if (state.level === 1) {
       const s = qd.syllable.toLowerCase();
       speak(s + ', ' + s);
