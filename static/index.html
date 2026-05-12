@@ -172,15 +172,33 @@ function populateVoices() {
   }
 }
 
-function speak(text) {
-  speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.lang = 'ru-RU';
-  utt.rate = 0.72;
+function getVoice() {
   const voices = speechSynthesis.getVoices();
   const idx = parseInt(voiceSelect.value);
-  if (!isNaN(idx) && voices[idx]) utt.voice = voices[idx];
-  speechSynthesis.speak(utt);
+  return (!isNaN(idx) && voices[idx]) ? voices[idx] : null;
+}
+
+function makeUtt(text, rate) {
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'ru-RU';
+  utt.rate = rate;
+  const v = getVoice();
+  if (v) utt.voice = v;
+  return utt;
+}
+
+function speak(text) {
+  speechSynthesis.cancel();
+  speechSynthesis.speak(makeUtt(text, 0.72));
+}
+
+// For letters: stretch the first syllable of the hint word so the
+// consonant onset is clearly audible, then say "как мама" normally.
+function speakLetter(hintWord) {
+  speechSynthesis.cancel();
+  const firstSyllable = hintWord.slice(0, 2); // e.g. "ма" from "мама"
+  speechSynthesis.speak(makeUtt(firstSyllable, 0.15)); // very slow → "мммм..."
+  speechSynthesis.speak(makeUtt('как ' + hintWord, 0.72));
 }
 
 voiceSelect.addEventListener('change', () => {
@@ -308,19 +326,17 @@ function renderExercise(index) {
 
   // Sound button
   soundBtn.onclick = () => {
-    let text = '';
     if (state.level === 0) {
-      // Speak the hint word (e.g. "Как кот" → "кот") — single consonants confuse TTS
-      text = (qd.hint || qd.display).split(' ').pop().toLowerCase();
+      const hintWord = (qd.hint || qd.display).split(' ').pop().toLowerCase();
+      speakLetter(hintWord); // slow first syllable + "как мама"
     } else if (state.level === 1) {
       const s = qd.syllable.toLowerCase();
-      text = s + ', ' + s;
+      speak(s + ', ' + s);
     } else if (state.level === 2) {
-      text = qd.display.toLowerCase();
+      speak(qd.display.toLowerCase());
     } else {
-      text = qd.sentence;
+      speak(qd.sentence);
     }
-    speak(text);
   };
 
   // Answer buttons
