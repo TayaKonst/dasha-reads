@@ -275,7 +275,7 @@ function renderExercise(index) {
   // Sound button
   soundBtn.onclick = () => {
     const texts = [qd.display, qd.syllable, qd.display, qd.sentence];
-    speak(texts[state.level] || '');
+    speak((texts[state.level] || '').toLowerCase());
   };
 
   // Answer buttons
