@@ -309,14 +309,17 @@ function renderExercise(index) {
   // Sound button
   soundBtn.onclick = () => {
     let text = '';
-    if (state.level === 0) text = qd.display.toLowerCase();
-    else if (state.level === 1) {
-      // Repeat syllable twice so TTS reads it as sound, not letters
+    if (state.level === 0) {
+      // Speak the hint word (e.g. "Как кот" → "кот") — single consonants confuse TTS
+      text = (qd.hint || qd.display).split(' ').pop().toLowerCase();
+    } else if (state.level === 1) {
       const s = qd.syllable.toLowerCase();
       text = s + ', ' + s;
+    } else if (state.level === 2) {
+      text = qd.display.toLowerCase();
+    } else {
+      text = qd.sentence;
     }
-    else if (state.level === 2) text = qd.display.toLowerCase();
-    else text = qd.sentence;
     speak(text);
   };
 
