@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -10,6 +11,9 @@ from fastapi.responses import FileResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from routers import exercises, sessions, stats  # noqa: E402
+
+BASE_DIR = Path(__file__).parent
+STATIC_DIR = BASE_DIR / "static"
 
 app = FastAPI(title="Русский для Даши")
 
@@ -24,14 +28,14 @@ app.include_router(exercises.router, prefix="/api")
 app.include_router(sessions.router, prefix="/api")
 app.include_router(stats.router, prefix="/api")
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/")
 async def index():
-    return FileResponse("static/index.html")
+    return FileResponse(str(STATIC_DIR / "index.html"))
 
 
 @app.get("/stats")
 async def stats_page():
-    return FileResponse("static/stats.html")
+    return FileResponse(str(STATIC_DIR / "stats.html"))

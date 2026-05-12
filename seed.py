@@ -142,10 +142,16 @@ EXERCISES = [
 
 
 async def main():
+    from sqlalchemy import select, func
     from sqlalchemy.ext.asyncio import AsyncSession
 
     engine = create_async_engine(os.getenv("DATABASE_URL"), connect_args={"statement_cache_size": 0})
     async with AsyncSession(engine) as session:
+        count = (await session.execute(select(func.count()).select_from(Exercise))).scalar()
+        if count and count >= len(EXERCISES):
+            print(f"Already have {count} exercises, skipping seed")
+            await engine.dispose()
+            return
         await session.execute(delete(Attempt))
         await session.execute(delete(Session))
         await session.execute(delete(Exercise))
