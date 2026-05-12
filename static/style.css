@@ -1,16 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Rubik:wght@400;500;700&display=swap');
 
 :root {
-  --bg: #f0ebe1;
-  --accent: #5b9a8b;
-  --accent-dark: #4a8070;
-  --btn: #e8826a;
-  --btn-hover: #d96e55;
+  --bg: #fdf0ff;
+  --accent: #9333ea;
+  --accent-dark: #7e22ce;
+  --btn: #ec4899;
+  --btn-hover: #db2777;
   --correct: #4caf50;
   --wrong: #f44336;
   --card-bg: #fff;
   --radius: 16px;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow: 0 4px 20px rgba(147, 51, 234, 0.1);
   --text: #2d2d2d;
   --text-muted: #888;
 }
@@ -63,7 +63,7 @@ h2 {
   align-items: center;
   justify-content: center;
   animation: float 3s ease-in-out infinite;
-  box-shadow: 0 8px 24px rgba(91, 154, 139, 0.4);
+  box-shadow: 0 8px 24px rgba(147, 51, 234, 0.4);
 }
 
 .mascot::before {
@@ -170,7 +170,7 @@ h2 {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--text-muted);
-  background: #f0ebe1;
+  background: #f3e8ff;
   padding: 2px 8px;
   border-radius: 20px;
 }
@@ -535,7 +535,7 @@ footer a:hover { color: var(--accent); }
   width: 36px;
   height: 36px;
   border-radius: 6px;
-  background: #e0dbd3;
+  background: #ede9f5;
   title: attr(title);
 }
 
