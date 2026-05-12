@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Русский для Даши</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<div id="confetti-container"></div>
+
+<!-- ── Level selector ─────────────────────────────────────────────── -->
+<div id="level-screen">
+  <div class="mascot-wrap">
+    <div class="mascot">
+      <div class="mascot-eyes">
+        <div class="mascot-eye"></div>
+        <div class="mascot-eye"></div>
+      </div>
+    </div>
+  </div>
+
+  <h1>РУССКИЙ ДЛЯ ДАШИ</h1>
+
+  <div id="level-error" class="error-banner" style="display:none">
+    Упс! Что-то пошло не так. Попробуй ещё раз.
+  </div>
+
+  <div class="level-tabs">
+    <button class="level-tab" data-level="0">
+      Буквы
+      <span class="timer-badge">10–15 мин</span>
+    </button>
+    <button class="level-tab" data-level="1">
+      Слоги
+      <span class="timer-badge">15–20 мин</span>
+    </button>
+    <button class="level-tab" data-level="2">
+      Слова
+      <span class="timer-badge">15–20 мин</span>
+    </button>
+    <button class="level-tab" data-level="3">
+      Предложения
+      <span class="timer-badge">20–25 мин</span>
+    </button>
+  </div>
+</div>
+
+<!-- ── Game screen ────────────────────────────────────────────────── -->
+<div id="game-screen" hidden>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+
+  <div class="score-row">
+    <span class="score-display" id="score-display">0 / 0</span>
+    <span class="streak-display" id="streak-display">🔥 0</span>
+  </div>
+
+  <div class="exercise-card" id="exercise-card">
+    <div class="question-image" id="question-image" style="display:none"></div>
+    <div class="question-display" id="question-display"></div>
+    <div class="question-hint" id="question-hint" style="display:none"></div>
+    <div class="question-text" id="question-text" style="display:none"></div>
+    <div class="color-scheme-display" id="color-scheme-display" style="display:none"></div>
+    <button class="sound-btn" id="sound-btn">🔊 Послушать</button>
+    <div class="answers-grid" id="answers-grid"></div>
+  </div>
+</div>
+
+<!-- ── Results screen ─────────────────────────────────────────────── -->
+<div id="results-screen" hidden>
+  <div class="mascot-wrap">
+    <div class="mascot">
+      <div class="mascot-eyes">
+        <div class="mascot-eye"></div>
+        <div class="mascot-eye"></div>
+      </div>
+    </div>
+  </div>
+  <p class="result-title">Молодец, Даша! 🎉</p>
+  <div class="result-score" id="result-score">—</div>
+  <p class="result-sub" id="result-sub"></p>
+  <div class="result-btns">
+    <button class="btn-primary" id="play-again-btn">Ещё раз!</button>
+    <button class="btn-secondary" id="change-level-btn">Выбрать уровень</button>
+  </div>
+</div>
+
+<footer>
+  <a href="/stats">📊 Статистика для родителей</a>
+</footer>
+
+<script>
+// ── Letter color classification ──────────────────────────────────────
+const LETTER_COLORS = {
+  'а': 'vowel', 'е': 'vowel', 'и': 'vowel', 'о': 'vowel',
+  'у': 'vowel', 'ы': 'vowel', 'э': 'vowel', 'ю': 'vowel', 'я': 'vowel',
+  'ё': 'yo',
+  'ь': 'soft-sign',
+  'ъ': 'hard-sign',
+};
+
+function colorizeWord(word) {
+  return word.split('').map(ch => {
+    const cls = LETTER_COLORS[ch.toLowerCase()] || 'consonant';
+    return `<span class="letter-${cls}">${ch}</span>`;
+  }).join('');
+}
+
+// ── State ────────────────────────────────────────────────────────────
+const state = {
+  sessionId: null,
+  level: null,
+  exercises: [],
+  currentIndex: 0,
+  score: 0,
+  streak: 0,
+  answered: false,
+};
+
+// ── DOM refs ─────────────────────────────────────────────────────────
+const levelScreen   = document.getElementById('level-screen');
+const gameScreen    = document.getElementById('game-screen');
+const resultsScreen = document.getElementById('results-screen');
+const progressFill  = document.getElementById('progress-fill');
+const scoreDisplay  = document.getElementById('score-display');
+const streakDisplay = document.getElementById('streak-display');
+const questionImage = document.getElementById('question-image');
+const questionEl    = document.getElementById('question-display');
+const hintEl        = document.getElementById('question-hint');
+const questionText  = document.getElementById('question-text');
+const colorSchemeEl = document.getElementById('color-scheme-display');
+const soundBtn      = document.getElementById('sound-btn');
+const answersGrid   = document.getElementById('answers-grid');
+const resultScore   = document.getElementById('result-score');
+const resultSub     = document.getElementById('result-sub');
+const levelError    = document.getElementById('level-error');
+
+// ── Speech ───────────────────────────────────────────────────────────
+if (!window.speechSynthesis) {
+  soundBtn.style.display = 'none';
+}
+
+function speak(text) {
+  speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'ru-RU';
+  utt.rate = 0.72;
+  const voices = speechSynthesis.getVoices();
+  const ruVoice = voices.find(v => v.lang.startsWith('ru'));
+  if (ruVoice) utt.voice = ruVoice;
+  speechSynthesis.speak(utt);
+}
+
+// ── Confetti ─────────────────────────────────────────────────────────
+function triggerConfetti(count = 10) {
+  const container = document.getElementById('confetti-container');
+  const colors = ['#e8826a', '#5b9a8b', '#f9c74f', '#90be6d', '#f3722c', '#a8dadc'];
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    const dur = 1.4 + Math.random() * 1.2;
+    el.style.cssText = `
+      left: ${Math.random() * 100}%;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      transform: rotate(${Math.random() * 360}deg) scale(${0.5 + Math.random() * 0.8});
+      animation-delay: ${Math.random() * 0.4}s;
+      animation-duration: ${dur}s;
+    `;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), (dur + 0.5) * 1000);
+  }
+}
+
+// ── Level tabs ───────────────────────────────────────────────────────
+document.querySelectorAll('.level-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const level = parseInt(tab.dataset.level);
+    document.querySelectorAll('.level-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    startGame(level);
+  });
+});
+
+// ── Start game ───────────────────────────────────────────────────────
+async function startGame(level) {
+  levelError.style.display = 'none';
+  try {
+    const [sessionRes, exercisesRes] = await Promise.all([
+      fetch('/api/sessions/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level }),
+      }),
+      fetch(`/api/exercises/${level}?limit=10`),
+    ]);
+
+    if (!sessionRes.ok || !exercisesRes.ok) throw new Error('API error');
+
+    const sessionData = await sessionRes.json();
+    const exercises = await exercisesRes.json();
+
+    if (!exercises.length) throw new Error('No exercises');
+
+    state.sessionId = sessionData.session_id;
+    state.level = level;
+    state.exercises = exercises;
+    state.currentIndex = 0;
+    state.score = 0;
+    state.streak = 0;
+    state.answered = false;
+
+    levelScreen.hidden = true;
+    resultsScreen.hidden = true;
+    gameScreen.hidden = false;
+
+    renderExercise(0);
+  } catch (e) {
+    levelError.style.display = 'block';
+    document.querySelectorAll('.level-tab').forEach(t => t.classList.remove('active'));
+  }
+}
+
+// ── Render exercise ──────────────────────────────────────────────────
+function renderExercise(index) {
+  const ex = state.exercises[index];
+  state.answered = false;
+  state.exerciseStartTime = Date.now();
+
+  // Progress
+  progressFill.style.width = `${(index / state.exercises.length) * 100}%`;
+  scoreDisplay.textContent = `${state.score} / ${index}`;
+  streakDisplay.textContent = `🔥 ${state.streak}`;
+
+  // Question display
+  const qd = ex.question_data;
+  hintEl.style.display = 'none';
+  questionText.style.display = 'none';
+  colorSchemeEl.style.display = 'none';
+  questionImage.style.display = 'none';
+
+  if (state.level === 0) {
+    if (qd.image) {
+      questionImage.textContent = qd.image;
+      questionImage.style.display = 'block';
+    }
+    questionEl.textContent = qd.display;
+    hintEl.textContent = qd.hint;
+    hintEl.style.display = 'block';
+  } else if (state.level === 1) {
+    if (qd.image) {
+      questionImage.textContent = qd.image;
+      questionImage.style.display = 'block';
+    }
+    questionEl.textContent = qd.syllable;
+    questionText.textContent = qd.question || 'Какой слог ты видишь?';
+    questionText.style.display = 'block';
+  } else if (state.level === 2) {
+    questionEl.textContent = qd.image;
+    colorSchemeEl.innerHTML = colorizeWord(qd.display);
+    colorSchemeEl.style.display = 'block';
+  } else {
+    questionEl.style.fontSize = '1.3rem';
+    questionEl.textContent = qd.sentence;
+    questionText.textContent = qd.question;
+    questionText.style.display = 'block';
+  }
+
+  // Sound button
+  soundBtn.onclick = () => {
+    const texts = [qd.display, qd.syllable, qd.display, qd.sentence];
+    speak(texts[state.level] || '');
+  };
+
+  // Answer buttons
+  answersGrid.innerHTML = '';
+  ex.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => handleAnswer(opt, ex, btn));
+    answersGrid.appendChild(btn);
+  });
+
+  // Reset font size for levels other than sentence
+  if (state.level !== 3) questionEl.style.fontSize = '';
+}
+
+// ── Handle answer ────────────────────────────────────────────────────
+async function handleAnswer(answer, exercise, clickedBtn) {
+  if (state.answered) return;
+  state.answered = true;
+
+  const responseTime = Date.now() - (state.exerciseStartTime || Date.now());
+
+  let isCorrect = false;
+  let correctAnswer = exercise.correct_answer;
+
+  try {
+    const res = await fetch(`/api/sessions/${state.sessionId}/answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        exercise_id: exercise.id,
+        answer,
+        response_time_ms: responseTime,
+      }),
+    });
+    const data = await res.json();
+    isCorrect = data.is_correct;
+    correctAnswer = data.correct_answer;
+  } catch (e) {
+    // Fallback: local check
+    isCorrect = answer.trim().toLowerCase() === exercise.correct_answer.trim().toLowerCase();
+  }
+
+  // Animate all buttons
+  document.querySelectorAll('.answer-btn').forEach(btn => {
+    btn.disabled = true;
+    if (btn.textContent.trim() === correctAnswer.trim()) {
+      btn.classList.add('correct');
+    } else if (btn === clickedBtn && !isCorrect) {
+      btn.classList.add('wrong');
+    }
+  });
+
+  if (isCorrect) {
+    state.score++;
+    state.streak++;
+    if (state.streak >= 2) triggerConfetti(4);
+  } else {
+    state.streak = 0;
+  }
+
+  scoreDisplay.textContent = `${state.score} / ${state.currentIndex + 1}`;
+  streakDisplay.textContent = `🔥 ${state.streak}`;
+
+  setTimeout(() => {
+    state.currentIndex++;
+    if (state.currentIndex >= state.exercises.length) {
+      completeGame();
+    } else {
+      renderExercise(state.currentIndex);
+    }
+  }, 1200);
+}
+
+// ── Complete game ────────────────────────────────────────────────────
+async function completeGame() {
+  progressFill.style.width = '100%';
+
+  try {
+    await fetch(`/api/sessions/${state.sessionId}/complete`, { method: 'POST' });
+  } catch (e) { /* non-critical */ }
+
+  const pct = Math.round((state.score / state.exercises.length) * 100);
+  resultScore.textContent = `${pct}%`;
+  resultSub.textContent = `${state.score} из ${state.exercises.length} правильно`;
+
+  gameScreen.hidden = true;
+  resultsScreen.hidden = false;
+
+  triggerConfetti(25);
+}
+
+// ── Results buttons ──────────────────────────────────────────────────
+document.getElementById('play-again-btn').addEventListener('click', () => {
+  resultsScreen.hidden = true;
+  gameScreen.hidden = false;
+  startGame(state.level);
+});
+
+document.getElementById('change-level-btn').addEventListener('click', () => {
+  resultsScreen.hidden = true;
+  levelScreen.hidden = false;
+  document.querySelectorAll('.level-tab').forEach(t => t.classList.remove('active'));
+});
+
+// Reload voices async (some browsers need this)
+if (window.speechSynthesis) {
+  speechSynthesis.onvoiceschanged = () => { speechSynthesis.getVoices(); };
+}
+</script>
+</body>
+</html>
